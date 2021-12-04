@@ -7,6 +7,10 @@ const {
 } = require('clean-webpack-plugin');
 //显示打包进度条
 const ProgressBarWebpackPlugin = require('progress-bar-webpack-plugin')
+//css以文件形式导入 配置mini-css-extract-plugin插件和它的loader，这时我们不需要style-loader
+const MiniCssExtractPlugin = require('mini-css-extract-plugin')
+//压缩css代码
+const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 module.exports = {
     //入口文件
     entry: "./src/index.js",
@@ -14,6 +18,7 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, 'build'),
         filename: 'bundle.js',
+        assetModuleFilename: 'images/[hash][ext][query]'
     },
     devServer: {
         static: {
@@ -30,6 +35,47 @@ module.exports = {
         //     },
         // }
     },
+    module: {
+        rules: [{
+                test: /\.css$/,
+                use: [
+                    MiniCssExtractPlugin.loader,
+                    'css-loader'
+                ]
+            },
+            {
+                test: /\.(png|jpg|gif|jpeg|)$/i,
+                // type: "asset/resource",//发送一个单独的文件并导出URL
+                // type: "asset/inline",//导出一个资源的data URL
+                type: 'asset',
+                parser: {
+                    //实现limit 超过4kb 自动使用asset/inline
+                    dataUrlCondition: {
+                        maxSize: 4 * 1024 // 4kb
+                    }
+                }
+                // generator: {
+                //   //自定义输出文件名的方式是，将某些资源发送到指定目录
+                //     filename: 'image/[name][hash:6].[ext]'
+                //   }
+            },
+            {
+                test: /\.ttf|eot|woff?$/i,
+                type: 'asset/resource',
+                generator: {
+                    filename: 'font/[name][hash:6].[ext]'
+                  }
+            },
+            {
+                //html文件中引入图片要是用html-loader
+                test: /\.html$/i,
+                loader: "html-loader",
+                options: {
+                    esModule: false,
+                },
+            },
+        ]
+    },
     plugins: [
         new HtmlWebpackPlugin({
             //需要在index.html配置<%= htmlWebpackPlugin.options.title %>
@@ -41,9 +87,17 @@ module.exports = {
             // filename: "index.html"
         }),
         new CleanWebpackPlugin(),
-        // new ProgressBarWebpackPlugin(),
+        new ProgressBarWebpackPlugin(),
+        new MiniCssExtractPlugin({
+            filename: "css/[name][chunkhash].css"
+        }),
         // new webpack.HotModuleReplacementPlugin()
     ],
+    optimization: {
+        minimizer: [
+            new CssMinimizerPlugin(),
+        ],
+    },
     // development, production 或 none 之中的一个，来设置 mode 参数
     mode: "development",
     //cheap-module-source-map 显示错误在源文件第几行

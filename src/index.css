@@ -1,0 +1,12 @@
+@import "./assets/fonts/iconfont.css";
+@import "./assets/css/index.css";
+h1 {
+    color: red;
+    background-color: seagreen;
+}
+
+#images {
+    width: 400px;
+    height: 400px;
+    background-image: url("./assets/images/pig.jpg");
+}
