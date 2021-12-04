@@ -11,6 +11,10 @@ const ProgressBarWebpackPlugin = require('progress-bar-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 //压缩css代码
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
+const postcssPresetEnv = require('postcss-preset-env');
+//在设置 node.js 环境变量   变成开发环境
+process.env.NODE_ENV = "production"
+// process.env.NODE_ENV = "development";
 module.exports = {
     //入口文件
     entry: "./src/index.js",
@@ -40,7 +44,25 @@ module.exports = {
                 test: /\.css$/,
                 use: [
                     MiniCssExtractPlugin.loader,
-                    'css-loader'
+                    {
+                        loader: 'css-loader',
+                        // 0 => no loaders (default);
+                        // 1 => postcss-loader;
+                        // 2 => postcss-loader, sass-loader
+                        options: {
+                            //处理@import引入的css文件
+                            importLoaders: 1,
+                        }
+                    },
+                    {
+                        loader: 'postcss-loader',
+                        options: {
+                            postcssOptions: {
+                                plugins: [postcssPresetEnv()]
+                            }
+                        }
+
+                    }
                 ]
             },
             {
@@ -64,7 +86,7 @@ module.exports = {
                 type: 'asset/resource',
                 generator: {
                     filename: 'font/[name][hash:6].[ext]'
-                  }
+                }
             },
             {
                 //html文件中引入图片要是用html-loader
@@ -95,6 +117,7 @@ module.exports = {
     ],
     optimization: {
         minimizer: [
+            //配置这个和importLoaders时 打包时mode要为production 否则会报错
             new CssMinimizerPlugin(),
         ],
     },
