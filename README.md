@@ -12,9 +12,9 @@ webpack配置学习
 git clone https://github.com/qdfudimo/webpack.git
 安装依赖
 npm install
-启动
-npm run build
 打包
+npm run build
+启动
 npm run dev
 ```
 ---
