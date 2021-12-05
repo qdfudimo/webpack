@@ -12,6 +12,8 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 //压缩css代码
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 const postcssPresetEnv = require('postcss-preset-env');
+//压缩js代码
+const TerserPlugin = require("terser-webpack-plugin");
 //在设置 node.js 环境变量   变成开发环境
 process.env.NODE_ENV = "production"
 // process.env.NODE_ENV = "development";
@@ -22,7 +24,8 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, 'build'),
         filename: 'bundle.js',
-        assetModuleFilename: 'images/[hash][ext][query]'
+        assetModuleFilename: 'images/[hash][ext][query]',
+        chunkFilename:"js/[name][contenthash:10]_chunk.js"
     },
     devServer: {
         static: {
@@ -41,6 +44,16 @@ module.exports = {
     },
     module: {
         rules: [{
+                //配置 Babel 来转换高级的ES语法
+                test: /\.js$/,
+                loader: 'babel-loader',
+                exclude: /node_modules/,
+                options: {
+                    //开启bable缓存，第二次构建时会读取之前的缓存
+                    cacheDirectory: true
+                }
+            },
+            {
                 test: /\.css$/,
                 use: [
                     MiniCssExtractPlugin.loader,
@@ -115,11 +128,65 @@ module.exports = {
         }),
         // new webpack.HotModuleReplacementPlugin()
     ],
+    resolve: {
+        //省略后缀名
+        extensions: ['.js', '.json']
+    },
     optimization: {
+        //在开发模式下配置 tree shakeing
+        usedExports: true,
+        //压缩js
+        minimize: true,
         minimizer: [
             //配置这个和importLoaders时 打包时mode要为production 否则会报错
             new CssMinimizerPlugin(),
+            new TerserPlugin({
+                parallel: true, // 是否并行打包
+            })
         ],
+        splitChunks: {
+            chunks: 'all',
+            //生成 chunk 的最小体积
+            minSize: 30*1024,
+            //最大限制*1024
+            maxSize: 50*1024,
+            //拆分前必须共享模块的最小 chunks 数。
+            minChunks: 1,
+            //按需加载时的最大并行请求数
+            maxAsyncRequests: 5,
+            //入口点的最大并行请求数。
+            maxInitialRequests: 30,
+            //强制执行拆分的体积阈值和其他限制（minRemainingSize，maxAsyncRequests，maxInitialRequests）将被忽略。
+            // enforceSizeThreshold: 50000,
+            //webpack 将使用 chunk 的来源和名称生成名称（例如 vendors~main.js）
+            automaticNameDelimiter:"~",
+            // name:true,
+            cacheGroups: {
+                defaultVendors: {
+                    test: /[\\/]node_modules[\\/]/,
+                    //优先级
+                    priority: -10,
+                    reuseExistingChunk: true,
+                    // filename: '[name].bundle.js',
+                },
+                // commons: {
+                //     name: 'commons',
+                //     chunks: 'initial',
+                //     minChunks: 2,
+                //   },
+                //将当前模块记录其他模块的hash单独打包为一个文件 runtime
+                //解决：修改a文件导致b文件contentHash变化
+                // runtimeChunk: {
+                //     name: (entrypoint) => `runtimechunk~${entrypoint.name}`,
+                //   },
+                default: {
+                    minChunks: 2,
+                    priority: -20,
+                    reuseExistingChunk: true,
+                },
+            },
+        },
+
     },
     // development, production 或 none 之中的一个，来设置 mode 参数
     mode: "development",
